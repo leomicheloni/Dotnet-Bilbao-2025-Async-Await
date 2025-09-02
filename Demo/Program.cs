@@ -1,21 +1,32 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-stopWatch.Start();
-Console.WriteLine("Calling AsyncCall...");
+internal class Program
+{
+    public static void Main(string[] args)
+    {
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
 
-AsyncCall();
+        Task.Run(()=>AsyncCall());
 
-Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
-Console.ReadLine();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
 
-static async void AsyncCall() 
-{ 
-    Console.Write("Starting remote call... ");
+        Console.ReadLine();
+    }
 
-    await Task.Delay(2000);
+    static async Task<int> AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
 
-    Console.WriteLine("Finishing ");
+        await Task.Delay(2000);
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+        return 42;
+    }
 }
-

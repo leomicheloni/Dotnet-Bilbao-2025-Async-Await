@@ -17,7 +17,7 @@
 
 > Entonces, en resumen, la unidad que permite aplicación asincrónicas en .NET es el Thread.
 
-Es una tecnología de 2012 C# 5
+> Es una tecnología de 2012 C# 5
 ---
 
 ## 3. ¿Qué es un thread?
@@ -127,13 +127,16 @@ Console.ReadLine();
 
 **Nota:**  
 La mayoría de las tareas lanzadas con `Task.Run` o APIs asíncronas se ejecutan en el ThreadPool, que decide cómo y cuándo asignar los hilos disponibles.
+
 **Mito:**  
 “Cada Task crea un nuevo hilo.”  
+
 **Realidad:**  
 No necesariamente. El ThreadPool reutiliza hilos existentes la mayoría de las veces.
 
 **Mito:**  
 Si uso el Threadpool mis problemas con el rendimiento y los bloqueos se solucionan automáticamente.
+
 **Realidad:**  
 No, el ThreadPool puede ayudar a mejorar el rendimiento al reutilizar hilos, pero no resuelve todos los problemas de bloqueo. Es importante diseñar el código de manera asíncrona y evitar operaciones bloqueantes.
 
@@ -143,9 +146,135 @@ No, el ThreadPool puede ayudar a mejorar el rendimiento al reutilizar hilos, per
 
 Cómo hacemos si tenemos una llamada que es asincrónica y queremos invocarla desde otra llamada asincrónica?
 
+Al marcar un método como async las cosas cambian internalmente
+
+
 - Introducción a los modificadores `async` y `await`.
 - Facilitan la escritura de código no bloqueante.
 - Ejemplo básico:
+
+``` csharp
+static async void AsyncCall() 
+{ 
+    Console.WriteLine("Async Method starts... ");
+    Task.Delay(2000);
+    Console.WriteLine("Async Method finishing ");
+}
+```
+
+``` csharp
+using System;
+using System.Threading.Tasks;
+
+var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+stopWatch.Start();
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("Calling AsyncCall...");
+
+AsyncCall();
+
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+Console.ReadLine();
+
+static async void AsyncCall()
+{
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method starts... ");
+
+    await Task.Delay(2000);
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method finishing ");
+}
+```
+
+En este caso retorno void y no pasa mucho más, pero qué pasa si quiero leer el resultado?
+
+``` csharp
+static async int AsyncCall()
+{
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method starts... ");
+
+    await Task.Delay(2000);
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method finishing ");
+    return 42;
+}
+```
+
+Me indica que el tipo de retorno no es correcto, sin embargo estoy devolviendo un int
+
+
+``` csharp
+using System;
+using System.Threading.Tasks;
+
+var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+stopWatch.Start();
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("Calling AsyncCall...");
+
+AsyncCall();
+
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+Console.ReadLine();
+
+static async Task<int> AsyncCall()
+{
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method starts... ");
+
+    await Task.Delay(2000);
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method finishing ");
+    return 42;
+}
+```
+
+Si hacemos esto tenemos un warning que el método no va a esperar
+
+En realidad no espera, sino que sigue pero se queda pendiente de Task
+
+versión corregida
+
+``` csharp
+using System;
+using System.Threading.Tasks;
+
+var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+stopWatch.Start();
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("Calling AsyncCall...");
+
+await AsyncCall();
+
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+Console.ReadLine();
+
+static async Task<int> AsyncCall()
+{
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method starts... ");
+
+    await Task.Delay(2000);
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("Async Method finishing ");
+    return 42;
+}
+```
+
+Si ejecutamos veo que el Thread principal no se bloquea mientras espera el resultado de AsyncCall.
+
 
 ```csharp
 using System;
