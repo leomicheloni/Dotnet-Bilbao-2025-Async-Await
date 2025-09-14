@@ -10,6 +10,9 @@
 ## 2. ¿Qué es la programación asíncrona?
 
 Es poder ejecutar más de una tarea al mismo tiempo sin que una afecte a la otra.
+
+- **Analogía:** Pedir comida y limpiar la casa mientras esperas el delivery.
+
 Por ejemplo, en una aplicación web, mientras se espera la respuesta de una base de datos, el servidor puede atender otras solicitudes.
 
 Para poder tener programación asincrónica necesitamos tener la habilidad de poder ejecutar más de una tarea al mismo tiempo sin que afecte a la otra.
@@ -24,7 +27,6 @@ Un Thread es una unidad de ejecución dentro de un proceso. Los Threads permiten
 - Definición sencilla: permite que el programa gestione múltiples tareas sin bloquear el hilo principal.
 - Diferencia entre código síncrono y asíncrono.
 
-- **Analogía:** Pedir comida y limpiar la casa mientras esperas el delivery.
 
 > Entonces, en resumen, la unidad que permite aplicación asincrónicas en .NET es el Thread.
 > Es una tecnología de 2012 C# 5
@@ -44,17 +46,21 @@ Este elemento es el **thread**.
 Ejemplo de creación de un thread.
 
 ```csharp
-var thread = new System.Threading.Thread(() =>
-{
-    Thread.Sleep(2000); // detiene el thread!
-    Console.WriteLine("Hello from another thread!");
-});
+    public static void Main(string[] args)
+    {
+        var thread = new System.Threading.Thread(() =>
+        {
+            Thread.Sleep(2000); // detiene el thread!
+            Console.WriteLine("Hello from another thread!");
+        });
 
-thread.Start();
+        thread.Start();
 
-Console.WriteLine("Hello, World!");
+        Console.WriteLine("Hello, World!");
 
-Console.ReadLine();
+        Console.ReadLine();
+
+    }
 ```
 
 Analicemos lo que hace este código:
@@ -68,6 +74,8 @@ Hasta aquí todo bien, pero qué pasa si queremos utilizar el valor que retorna 
 
 
 ```csharp
+    public static void Main(string[] args)
+    {
         var result = 0;
 
         var thread2 = new System.Threading.Thread(() =>
@@ -80,11 +88,12 @@ Hasta aquí todo bien, pero qué pasa si queremos utilizar el valor que retorna 
 
         Console.WriteLine("Hello, World!");
 
-        thread2.Join(); // Espera a que thread2 termine
+        //thread2.Join(); // Espera a que thread2 termine
 
         Console.WriteLine($"Result from thread: {result}");
 
         Console.ReadLine();
+    }
 ```
 
 Esto funciona, pero estamos bloqueando el thread principal hasta que el thread2 termine.
@@ -162,21 +171,21 @@ Y cómo lo hacemos entonces?
 Ejemplo de creación de un thread usando el ThreadPool
 
 ```csharp
-using System;
-using System.Threading;
-
-class Program
-{
     static void Main()
     {
+        Console.WriteLine("Iniciando");
         ThreadPool.QueueUserWorkItem(DoWork);
+        Console.WriteLine("Trabajo en el thread principal.");
+
+        Console.ReadLine();
     }
 
     static void DoWork(object state)
     {
-        Console.WriteLine("Haciendo trabajo en un thread del pool.");
+        Console.WriteLine("Iniciando trabajo en un thread del pool.");
+        Thread.Sleep(2000);
+        Console.WriteLine("Trabajo en el thread del pool completado.");
     }
-}
 ```
 
 Siempre tenemos que usar el ThreadPool en lugar de crear hilos manualmente.
@@ -186,22 +195,24 @@ Sin embargo, el ThreadPool tiene sus propias limitaciones y consideraciones:
 - No es adecuado para tareas que requieren un control preciso sobre el ciclo de vida del hilo.
 - Tampoco podemos controlar excepciones que ocurren en los hilos del ThreadPool.
 
+> En resumen debemos evitar crear hilos manualmente ya sea con o sin el ThreadPool.
+
 ## Usando Task.Run
 
 ```csharp
-var t = Task.Run(() =>
-{
-    Console.WriteLine("Hello from another thread!");
-    System.Threading.Thread.Sleep(10000);
-    Console.WriteLine("Goodbye from another thread!");
-});
+    static void Main()
+    {
+        var t = Task.Run(() =>
+        {
+            Console.WriteLine("Hello from another thread!");
+            System.Threading.Thread.Sleep(5000);
+            Console.WriteLine("Goodbye from another thread!");
+        });
 
-Console.WriteLine("Hello, World!");
-Console.ReadLine();
+        Console.WriteLine("Hello, World!");
+        Console.ReadLine();
+    }
 ```
-
-**Nota:**  
-La mayoría de las tareas lanzadas con `Task.Run` o APIs asíncronas se ejecutan en el ThreadPool, que decide cómo y cuándo asignar los hilos disponibles. La cantidad de hilos en el ThreadPool se ajusta dinámicamente según la carga de trabajo y los recursos del sistema, no se comportará igual en una CPU de 4 núcleos que en una de 16 núcleos.
 
 **Mito:**  
 “Cada Task crea un nuevo hilo.”  
@@ -230,127 +241,251 @@ Al marcar un método como async las cosas cambian internamente
 - Ejemplo básico:
 
 ``` csharp
-static async void AsyncCall() 
-{ 
-    Console.WriteLine("Async Method starts... ");
-    Task.Delay(2000);
-    Console.WriteLine("Async Method finishing ");
-}
+    static void Main()
+    {
+
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
+
+        AsyncCall();
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+        Console.ReadLine();
+    }
+    static async void AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
+
+        Task.Delay(2000);
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+    }
 ```
 
+Me marca un warning que no estoy haciendo await de Task.Delay.
+Pero no necesito leer ningún resultado, solo quiero que espere 2 segundos. Así que todo bien...
+
+
+Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
+
+
 ``` csharp
-using System;
-using System.Threading.Tasks;
+    static void Main()
+    {
 
-var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-stopWatch.Start();
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("Calling AsyncCall...");
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
 
-AsyncCall();
+        try
+        {
+            AsyncCall();
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+        }
+        catch (Exception)
+        {
 
-Console.ReadLine();
+            Console.WriteLine("Error hay que reintentar");
+        }
 
-static async void AsyncCall()
-{
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method starts... ");
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
 
-    await Task.Delay(2000);
+        Console.ReadLine();
+    }
+    static async void AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
 
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method finishing ");
-}
+        Task.Run(() =>
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            throw new Exception("Error in Task");
+        });
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+    }
 ```
 
-En este caso retorno void y no pasa mucho más, pero qué pasa si quiero leer el resultado?
+En este caso no puedo capturar el error
+
+Para ello uso await.
 
 ``` csharp
-static async int AsyncCall()
-{
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method starts... ");
+    static void Main()
+    {
 
-    await Task.Delay(2000);
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
 
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method finishing ");
-    return 42;
-}
+        try
+        {
+            AsyncCall();
+
+        }
+        catch (Exception)
+        {
+
+            Console.WriteLine("Error hay que reintentar");
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+        Console.ReadLine();
+    }
+    static async void AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
+
+        await Task.Run(() =>
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            throw new Exception("Error in Task");
+        });
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+    }
+```
+
+En este caso el error se propaga, pero no puedo capturarlo en el Main porque AsyncCall retorna void.
+
+
+
+Lo correcto es siempre devolver Task o Task<T>.
+
+``` csharp
+    static async Task Main()
+    {
+
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
+
+        try
+        {
+            var result = AsyncCall();
+            Console.WriteLine("Result: {0}", result);
+
+        }
+        catch (Exception)
+        {
+
+            Console.WriteLine("Error hay que reintentar");
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+        Console.ReadLine();
+    }
+    static async Task<int> AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
+
+        var result = await Task.Run(() =>
+        {
+            return 44;            
+        });
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+
+        return result;
+    }
 ```
 
 Me indica que el tipo de retorno no es correcto, sin embargo estoy devolviendo un int
 
 
 ``` csharp
-using System;
-using System.Threading.Tasks;
+    static void Main()
+    {
 
-var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-stopWatch.Start();
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("Calling AsyncCall...");
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
 
-AsyncCall();
+        var result = AsyncCall();
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+        Console.WriteLine("Result is {0}", result);
 
-Console.ReadLine();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
 
-static async Task<int> AsyncCall()
-{
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method starts... ");
+        Console.ReadLine();
+    }
+    static async Task<int> AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
 
-    await Task.Delay(2000);
+        await Task.Delay(2000);
 
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method finishing ");
-    return 42;
-}
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+        return 42;
+    }
 ```
 
 Si hacemos esto tenemos un warning que el método no va a esperar
 
-En realidad no espera, sino que sigue pero se queda pendiente de Task
+Y lo que leemos el un Task y no el resultado.
 
 versión corregida
 
 ``` csharp
-using System;
-using System.Threading.Tasks;
+    static void Main()
+    {
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
 
-var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-stopWatch.Start();
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("Calling AsyncCall...");
+        Task.Run(async () =>
+        {
+            var result = await AsyncCall();
+            Console.WriteLine("Result is {0}", result);
+        });
 
-await AsyncCall();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+        Console.ReadLine();
+    }
+    static async Task<int> AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
 
-Console.ReadLine();
+        await Task.Delay(2000);
 
-static async Task<int> AsyncCall()
-{
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method starts... ");
-
-    await Task.Delay(2000);
-
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("Async Method finishing ");
-    return 42;
-}
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+        return 42;
+    }
 ```
 
-Si ejecutamos veo que el Thread principal no se bloquea mientras espera el resultado de AsyncCall.
 
+Hay algo que pasó desaparecido, el tipo de retorno.
+
+Si usamos await el tipo de retorno es el tipo que retorna es Task<T>.
 
 ```csharp
 using System;
@@ -551,7 +686,6 @@ task delay dentro de un foreach > por qué no usar thread sleep
 
 # SafeFireAndForget
 
-configureawait > false en aspnet core?
 IAsyncEnumerable<T>
 [EnumerationCancellationToken]
 
