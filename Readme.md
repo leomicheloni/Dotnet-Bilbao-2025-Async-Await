@@ -199,6 +199,8 @@ Sin embargo, el ThreadPool tiene sus propias limitaciones y consideraciones:
 
 ## Usando Task.Run
 
+La forma más recomendada de crear tareas asíncronas en .NET es usando `Task.Run`.
+
 ```csharp
     static void Main()
     {
@@ -228,17 +230,33 @@ No, el ThreadPool puede ayudar a mejorar el rendimiento al reutilizar hilos, per
 
 ---
 
+## 5. Qué es un Task?
+
+Task no es más que una estructura que representa una operación que se va a ejecutar en el futuro.
+Un Task en C# puede estar en varios estados:
+
+- **Created:** El Task ha sido creado pero aún no ha comenzado a ejecutarse.
+- **Running:** El Task está en proceso de ejecución.    
+- **Completed:** El Task ha terminado su ejecución, ya sea de forma exitosa o con error.
+- **Faulted:** El Task ha terminado con una excepción.
+- **Canceled:** El Task ha sido cancelado antes de completar su ejecución.
+
+Un Task puede devolver un valor o no. Si devuelve un valor, se usa `Task<T>`, donde `T` es el tipo del valor devuelto.
+
+> Task representa una operación asincrónica con la que podemos interactuar.
+
+> Task tiene relación directa con async/await.
+
+
 ## 5. async/await: ¿Qué son y cómo funcionan?
 
 Cómo hacemos entonces para poder invocar una llamada que es asincrónica desde una llamada síncrona, sin bloquear el thread actual?
 
 
-Al marcar un método como async las cosas cambian internamente
+> Al marcar un método como async las cosas cambian internamente
 
+Creamo un método que demora un tiempo y lo marcamos como async para no tener que esperarlo.
 
-- Introducción a los modificadores `async` y `await`.
-- Facilitan la escritura de código no bloqueante.
-- Ejemplo básico:
 
 ``` csharp
     static void Main()
@@ -249,7 +267,7 @@ Al marcar un método como async las cosas cambian internamente
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("Calling AsyncCall...");
 
-        AsyncCall();
+        Task.Run(AsyncCall);
 
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
@@ -258,18 +276,56 @@ Al marcar un método como async las cosas cambian internamente
     }
     static async void AsyncCall()
     {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method starts... ");
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.WriteLine("Starting long running task... ");
 
         Task.Delay(2000);
 
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method finishing ");
+        //Thread.Sleep(2000);
+
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.WriteLine("Finished long running task... ");
     }
 ```
 
 Me marca un warning que no estoy haciendo await de Task.Delay.
 Pero no necesito leer ningún resultado, solo quiero que espere 2 segundos. Así que todo bien...
+
+Vemos que el método se ejecuta pero no espera dos segundos.
+
+Porque AsyncCall no espera a que Task.Delay termine. No hace await.
+
+Agregamos await
+
+``` csharp
+    static void Main()
+    {
+
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
+
+        Task.Run(AsyncCall);
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+        Console.ReadLine();
+    }
+    static async void AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.WriteLine("Starting long running task... ");
+
+        await Task.Delay(2000);
+
+        //Thread.Sleep(2000);
+
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.WriteLine("Finished long running task... ");
+    }
+```
 
 
 Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
@@ -363,14 +419,13 @@ Para ello uso await.
 
 En este caso el error se propaga, pero no puedo capturarlo en el Main porque AsyncCall retorna void.
 
-
+> **Es una mala práctica usar async void.**
 
 Lo correcto es siempre devolver Task o Task<T>.
 
 ``` csharp
     static async Task Main()
     {
-
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         stopWatch.Start();
         Console.ForegroundColor = ConsoleColor.Cyan;
@@ -378,9 +433,8 @@ Lo correcto es siempre devolver Task o Task<T>.
 
         try
         {
-            var result = AsyncCall();
+            var result = await AsyncCall(); // si no uso await me devuelve un Task<int>
             Console.WriteLine("Result: {0}", result);
-
         }
         catch (Exception)
         {
@@ -413,56 +467,26 @@ Lo correcto es siempre devolver Task o Task<T>.
 Me indica que el tipo de retorno no es correcto, sin embargo estoy devolviendo un int
 
 
-``` csharp
-    static void Main()
-    {
-
-        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-        stopWatch.Start();
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("Calling AsyncCall...");
-
-        var result = AsyncCall();
-
-        Console.WriteLine("Result is {0}", result);
-
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
-
-        Console.ReadLine();
-    }
-    static async Task<int> AsyncCall()
-    {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method starts... ");
-
-        await Task.Delay(2000);
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method finishing ");
-        return 42;
-    }
-```
-
-Si hacemos esto tenemos un warning que el método no va a esperar
-
-Y lo que leemos el un Task y no el resultado.
-
-versión corregida
+Ahora podemos capturar la excepción en el Main.
 
 ``` csharp
-    static void Main()
+    static async Task Main()
     {
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         stopWatch.Start();
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("Calling AsyncCall...");
 
-        Task.Run(async () =>
+        try
         {
             var result = await AsyncCall();
-            Console.WriteLine("Result is {0}", result);
-        });
+            Console.WriteLine("Result: {0}", result);
+        }
+        catch (Exception)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Error hay que reintentar");
+        }
 
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
@@ -474,89 +498,165 @@ versión corregida
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Async Method starts... ");
 
-        await Task.Delay(2000);
+        var result = await Task.Run(() =>
+        {
+            throw new Exception("Simulated exception");
+            return 44;
+        });
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Async Method finishing ");
-        return 42;
+
+        return 44;
     }
 ```
 
+Sincronización de Tasks
 
-Hay algo que pasó desaparecido, el tipo de retorno.
+``` csharp
+    static async Task Main()
+    {
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
 
-Si usamos await el tipo de retorno es el tipo que retorna es Task<T>.
+        try
+        {
+            var result = await AsyncCall();
+            Console.WriteLine("Result: {0}", result);
+        }
+        catch (Exception)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Error hay que reintentar");
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+        Console.ReadLine();
+    }
+    static async Task<int> AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
+
+        var result = await Task.Run(() =>
+        {
+            Task.Delay(2000);
+            return 44;
+        });
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+
+        return 44;
+    }    
+```
+
+No espera, porque de nuevo no estoy esperando por la tarea.
+
+Agrego await
+
+``` csharp
+    static async Task Main()
+    {
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
+        stopWatch.Start();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Calling AsyncCall...");
+
+        try
+        {
+            var result = await AsyncCall();
+            Console.WriteLine("Result: {0}", result);
+        }
+        catch (Exception)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Error hay que reintentar");
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
+
+        Console.ReadLine();
+    }
+    static async Task<int> AsyncCall()
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method starts... ");
+
+        var result = await Task.Run(async () =>
+        {
+            await Task.Delay(2000);
+            return 44;
+        });
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Async Method finishing ");
+
+        return 44;
+    }
+```
+
+Ahora sí espera 2 segundos.
+
+En resumen async/await nos permite escribir código asíncrono de manera más sencilla y legible.
+
+Si el método es async, el compilador espera que haya al menos un await dentro del método.
+
+Al haber un await el compilador retorna Task o Task<T> automáticamente.
+
+### La clase Task
+
+``` csharp
+public class Task
+{
+    public bool IsCompleted { get; }
+    public Task Run(Action action);
+    public Task<TResult> Run<TResult>(Func<TResult> function);
+    public ConfiguredTaskAwaitable ConfigureAwait(ConfigureAwaitOptions options);
+    public Task<T> ContinueWith(Action<Task> continuationAction);
+    public static YieldAwaitable Yield();
+    public Task Delay(int millisecondsDelay);
+    public Task WhenAll(params Task[] tasks);
+    public Task WhenAny(params Task[] tasks);
+}
+```
+
+
+### Qué ocurre internamente cuando usamos async/await?
 
 ```csharp
 using System;
 using System.Threading.Tasks;
+using System.Net.Http;
+using System.Text.Json;
+using System.Collections.Generic;
 
-var httpClient = new HttpClient();
-var response = await httpClient.GetAsync("https://example.com"); // Result?
-var content = await response.Content.ReadAsStringAsync();
+class LibraryService(HttpClient client)
+{
+    public async Task<IEnumerable<Library>> GetDataAsync()
+    {
+        var response = await client.GetAsync("https://example.com");
+        response.EnsureSuccessStatusCode();
+        
+        var content = await response.Content.ReadAsStreamAsync();
+        
+        var libraries = await JsonSerializer.DeserializeAsync<List<Library>>(content);
 
-Console.WriteLine(content);
-Console.WriteLine("Hola, mundo!");
-Console.ReadLine();
-```
+        return libraries;
+    }
+}
 
-esto nos marca un warning.
-
-
-#### Creando nuestro propio método async
-
-```csharp
-using System;
-using System.Threading.Tasks;
-
-var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-stopWatch.Start();
-Console.WriteLine("Calling AsyncCall...");
-
-AsyncCall();
-
-Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
-Console.ReadLine();
-
-static void AsyncCall() 
-{ 
-    Console.Write("Starting remote call... ");
-
-    Thread.Sleep(2000);
-
-    Console.WriteLine("Finishing ");
+class Library
+{
+    public string Name { get; set; }
+    public string Version { get; set; }
 }
 ```
-
-Este código bloquea el hilo principal porque hace un `Thread.Sleep`.
-
-Intentamos agregar await
-
-``` csharp
-static async void AsyncCall() 
-{ 
-    Console.Write("Starting remote call... ");
-
-    await Thread.Sleep(2000);
-
-    Console.WriteLine("Finishing ");
-}
-```
-No nos deja porque el método retorna void.
-
-Usamos Task.Delay.
-
-``` csharp
-static async void AsyncCall() 
-{ 
-    Console.Write("Starting remote call... ");
-
-    await Task.Delay(2000);
-
-    Console.WriteLine("Finishing ");
-}
-```
-
 Cosas interesantes sobre async/await:
 
 - Solo podemos hacer await en métodos async.
@@ -585,7 +685,7 @@ await no detiene el thread actual, sino que permite que otros trabajos se realic
 
 > ejemplo de código descompilado
 
->async crear una máquina de estados para que se pueda hacer await de un método y saltar de otro thread mientras termina
+> async crear una máquina de estados para que se pueda hacer await de un método y saltar de otro thread mientras termina
 
 ``` csharp
 using System;
@@ -704,3 +804,30 @@ IAsyncEnumerable<T>
 https://sharplab.io
 https://www.youtube.com/watch?v=6frfLI3HqKI
 https://youtu.be/R-z2Hv-7nxk
+
+# Ejemplos de código
+
+- Creación de Thread manualmente.
+- Ejemplo que demuestra que no puedo leer el valor de retorno de un thread.
+- Ejemplo usando Join y bloqueo del UI Thread.
+
+- Uso de ThreadPool.
+
+- Uso de Task.Run.
+- Creación de método que tiene dentro un Task.Run
+- Ejemplo que demuestra dentro del nuevo método que no puedo leer el resultado porque retorna Task.
+- Ejemplo que demuestra que no puedo capturar excepciones en un método async void.
+- Ejemplo que demuestra que puedo capturar excepciones en un método async Task.
+- Ejemplo que demuestra que puedo leer el resultado de un método async Task<T>.
+- Ejemplo que demuestra que no puedo hacer await en un método que no es async.
+- Ejemplo que demuestra que no puedo retornar Task en un método async. (es automático)
+- Ejemplo que demuestra que await no crea un nuevo thread. (genera una máquina de estados)
+
+- Ejemplo de Parallel.ForEach
+- Ejemplo de Task.WhenAll
+- Ejemplo de Task.Delay
+- Ejemplo de Task.Yield
+- Ejemplo de ConfigureAwait
+- Ejemplo de SemaphoreSlim
+- Ejemplo de yield
+- Ejemplo de CancellationToken
