@@ -788,18 +788,66 @@ Un cancellation token es un mecanismo que permite cancelar operaciones asíncron
 - Operaciones de I/O (HTTP, base de datos, archivos).
 - Interfaces gráficas (UI responsiveness).
 - APIs y servicios web.
+- Toda operación que requiere esperar un recurso externo
 
 
 ---
 
 ## 10. Clases útiles
 - Parallel.ForEach
+
+``` csharp
+        Parallel.ForEach(new[] { 1, 2, 3, 4, 5 }, (i) =>
+        {
+            Console.WriteLine($"Processing {i}");
+            Thread.Sleep(1000 * new Random().Next(1, 5));
+            Console.WriteLine($"Processed {i}");
+        });
+```
+
 - Task.WhenAll
-- Task.Delay
 - Task.Yield
-- ConfigureAwait
+Permite a otras tareas ejecutarse antes de continuar.
+
+``` csharp
+    static async Task Main()
+    {
+        Console.WriteLine("Before Yield");
+        await Task.Yield();
+        Console.WriteLine("After Yield");
+    }
+```
+
 - SemaphoreSlim
-- yield
+``` csharp
+    static SemaphoreSlim semaphore = new SemaphoreSlim(2); // Permitir 2 tareas simultáneas
+
+    static async Task AccessResource(int id)
+    {
+        await semaphore.WaitAsync();
+        try
+        {
+            Console.WriteLine($"Task {id} accessing resource");
+            await Task.Delay(2000); // Simular trabajo
+            Console.WriteLine($"Task {id} releasing resource");
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
+    static async Task Main()
+    {
+        var tasks = new List<Task>();
+        for (int i = 1; i <= 5; i++)
+        {
+            int taskId = i; // Capturar el valor de i
+            tasks.Add(AccessResource(taskId));
+        }
+        await Task.WhenAll(tasks);
+    }
+```
 ---
 
 ### Buenas prácticas
