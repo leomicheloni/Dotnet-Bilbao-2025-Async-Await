@@ -1,5 +1,45 @@
 # Charla: Desmitificando async/await y la programación asíncrona en .NET
 
+## Menú (Tabla de contenidos)
+- [1. Introducción](#1-introducción)
+- [2. ¿Qué es la programación asíncrona?](#2-qué-es-la-programación-asíncrona)
+    - [Analogía y ejemplos](#analogía-y-ejemplos)
+        - [Analogía: delivery y limpieza](#analogía-delivery-y-limpieza)
+        - [Ejemplos prácticos (I/O vs CPU)](#ejemplos-prácticos-io-vs-cpu)
+- [3. ¿Qué es un thread?](#3-qué-es-un-thread)
+    - [Creando un thread](#creando-un-thread)
+        - [Código explicado paso a paso](#código-explicado-paso-a-paso)
+        - [Problema: Join bloquea el hilo principal](#problema-join-bloquea-el-hilo-principal)
+    - [Background thread](#background-thread)
+        - [Diferencias con foreground threads](#diferencias-con-foreground-threads)
+        - [Escenarios de uso recomendados](#escenarios-de-uso-recomendados)
+- [4. ¿Qué es el ThreadPool?](#4-qué-es-el-threadpool)
+    - [Usando Task.Run](#usando-taskrun)
+        - [Ventajas de Task.Run](#ventajas-de-taskrun)
+        - [Limitaciones y consideraciones](#limitaciones-y-consideraciones)
+- [5. Qué es un Task?](#5-qué-es-un-task)
+- [6. async/await: ¿Qué son y cómo funcionan?](#6-asyncawait-qué-son-y-cómo-funcionan)
+    - [async void vs async Task](#async-void-vs-async-task)
+        - [Cuándo usar cada una](#cuándo-usar-cada-una)
+    - [Qué ocurre internamente](#qué-ocurre-internamente)
+        - [La state machine del compilador](#la-state-machine-del-compilador)
+        - [SynchronizationContext y ExecutionContext](#synchronizationcontext-y-executioncontext)
+- [Cancellation token](#cancellation-token)
+- [7. Buenas prácticas y errores comunes](#7-buenas-prácticas-y-errores-comunes)
+    - [Evitar bloqueo: .Result / .Wait](#evitar-bloqueo-result-wait)
+        - [Alternativas asíncronas recomendadas](#alternativas-asíncronas-recomendadas)
+    - [Manejo de excepciones en Tasks](#manejo-de-excepciones-en-tasks)
+- [9. Cuándo y cómo usar async/await](#9-cuándo-y-cómo-usar-asyncawait)
+- [10. Clases útiles](#10-clases-útiles)
+    - [ManualResetEventSlim](#manualreseteventslim)
+        - [Uso típico y ventajas](#uso-típico-y-ventajas)
+    - [CancellationTokenSource y CancellationToken](#cancellationtokensource-y-cancellationtoken)
+- [12. Recursos y referencias](#12-recursos-para-seguir-aprendiendo)
+    - [Lecturas recomendadas](#lecturas-recomendadas)
+    - [Enlaces y documentación oficial](#enlaces-y-documentación-oficial)
+
+---
+
 ## 1. Introducción
 - Presentación personal y contexto.
 - ¿Por qué es importante entender la asincronía en aplicaciones modernas?
@@ -13,7 +53,7 @@ Es poder ejecutar más de una tarea al mismo tiempo sin que una afecte a la otra
 
 - **Analogía:** Pedir comida y limpiar la casa mientras esperas el delivery.
 
-Por ejemplo, en una aplicación web, mientras se espera la respuesta de una base de datos, el servidor puede atender otras solicitudes.
+- **Ejemplo:** En una aplicación web, mientras se espera la respuesta de una base de datos, el servidor puede atender otras solicitudes.
 
 Para poder tener programación asincrónica necesitamos tener la habilidad de poder ejecutar más de una tarea al mismo tiempo sin que afecte a la otra.
 Para esto existe el concepto de Thread
@@ -70,8 +110,31 @@ Analicemos lo que hace este código:
 4. El thread se inicia con `thread.Start()`.
 5. Mientras tanto, el thread principal continúa y imprime "Hello, World!" inmediatamente.
 
-Hasta aquí todo bien, pero qué pasa si queremos utilizar el valor que retorna el thread en otro thread?
+### Problemas con threads
 
+Hasta aquí todo bien, pero qué pasa si queremos utilizar el valor que retorna el thread en otro thread?
+> La clase Thread no tiene una forma directa de devolver un valor.
+
+```csharp
+    public static void Main(string[] args)
+    {
+        var result = 0;
+
+        var thread2 = new System.Threading.Thread(() =>
+        {
+            Thread.Sleep(2000);
+            result = 42;
+        });
+
+        thread2.Start();
+
+        Console.WriteLine("Hello, World!");
+
+        Console.WriteLine($"Result from thread: {result}");
+
+        Console.ReadLine();
+    }
+```
 
 ```csharp
     public static void Main(string[] args)
@@ -115,23 +178,6 @@ Esto funciona, pero estamos bloqueando el thread principal hasta que el thread2 
 “Para hacer código asíncrono necesito crear muchos threads.”  
 **Realidad:**  
 No es necesario crear hilos manualmente para la mayoría de las operaciones asíncronas. El runtime y el ThreadPool gestionan los hilos por nosotros.
-
-Ejemplo que bloquea el UI Thread:
-
-``` csharp
-var thread = new System.Threading.Thread(() =>
-{
-    Thread.Sleep(2000);
-    System.Console.WriteLine("Hello from another thread!");
-});
-
-thread.Start();
-//thread.Join(); // Esto bloquearía el UI Thread
-
-Console.WriteLine("Original Thread!");
-
-Console.ReadLine();
-```
 
 ---
 
@@ -248,7 +294,7 @@ Un Task puede devolver un valor o no. Si devuelve un valor, se usa `Task<T>`, do
 > Task tiene relación directa con async/await.
 
 
-## 5. async/await: ¿Qué son y cómo funcionan?
+## 6. async/await: ¿Qué son y cómo funcionan?
 
 Cómo hacemos entonces para poder invocar una llamada que es asincrónica desde una llamada síncrona, sin bloquear el thread actual?
 
@@ -289,7 +335,7 @@ Creamo un método que demora un tiempo y lo marcamos como async para no tener qu
 ```
 
 Me marca un warning que no estoy haciendo await de Task.Delay.
-Pero no necesito leer ningún resultado, solo quiero que espere 2 segundos. Así que todo bien...
+Pero no necesito leer ningún resultado, solo quiero que espere 2 segundos, estoy haciendo **fire-and-forget**. Así que todo bien...
 
 Vemos que el método se ejecuta pero no espera dos segundos.
 
@@ -326,7 +372,10 @@ Agregamos await
         Console.WriteLine("Finished long running task... ");
     }
 ```
+Ahora si el método AsyncCall espera a que Task.Delay termine (la tarea asíncrona).
+Entonces, sí estamos sincronizando el código.
 
+**Pero el Thread de AsyncCall se libera mientras espera a que Task.Delay termine.**
 
 Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
 
@@ -542,52 +591,6 @@ Sincronización de Tasks
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Async Method starts... ");
 
-        var result = await Task.Run(() =>
-        {
-            Task.Delay(2000);
-            return 44;
-        });
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method finishing ");
-
-        return 44;
-    }    
-```
-
-No espera, porque de nuevo no estoy esperando por la tarea.
-
-Agrego await
-
-``` csharp
-    static async Task Main()
-    {
-        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-        stopWatch.Start();
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("Calling AsyncCall...");
-
-        try
-        {
-            var result = await AsyncCall();
-            Console.WriteLine("Result: {0}", result);
-        }
-        catch (Exception)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Error hay que reintentar");
-        }
-
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
-
-        Console.ReadLine();
-    }
-    static async Task<int> AsyncCall()
-    {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method starts... ");
-
         var result = await Task.Run(async () =>
         {
             await Task.Delay(2000);
@@ -656,6 +659,9 @@ class Library
     public string Name { get; set; }
     public string Version { get; set; }
 }
+
+> Ejemplo del código descompilado
+
 ```
 Cosas interesantes sobre async/await:
 
@@ -682,8 +688,6 @@ await no "sincroniza" los threads, simplemente libera el hilo actual hasta que l
 “await detiene el thread actual hasta que el otro termine.”  
 **Realidad:**  
 await no detiene el thread actual, sino que permite que otros trabajos se realicen en ese hilo mientras espera la finalización de la tarea asíncrona.
-
-> ejemplo de código descompilado
 
 > async crear una máquina de estados para que se pueda hacer await de un método y saltar de otro thread mientras termina
 
@@ -732,25 +736,51 @@ Qué es un cancellation token?
 
 Un cancellation token es un mecanismo que permite cancelar operaciones asíncronas en .NET. Se utiliza para notificar a una tarea que debe detenerse, lo que es especialmente útil en escenarios de larga duración o en aplicaciones que requieren una respuesta rápida a la interacción del usuario.
 
+``` csharp
+    public static void Main(string[] args)
+    {
+        // ejemplo de cencellation token
+        CancellationTokenSource cts = new CancellationTokenSource();
+        CancellationToken token = cts.Token;
+        Task.Run(() =>
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    Console.WriteLine("Tarea cancelada");
+                    return;
+                }
+                Console.WriteLine($"Tarea en ejecución {i + 1}");
+                Thread.Sleep(500);
+            }
+            Console.WriteLine("Tarea completada");
+        }, token);
+
+        Console.WriteLine("Presiona Enter para cancelar la tarea...");
+        Console.ReadLine();
+        cts.Cancel();
+        Console.WriteLine("Programa finalizado");
+        Console.ReadLine();
+    }
+```
+
 ---
 
-## 7. Buenas prácticas y errores comunes
+## 7. ConfigureAwait
+
+- Por defecto, await captura el contexto de sincronización (SynchronizationContext) para continuar en el mismo contexto después de la espera.
+- En aplicaciones UI (WinForms, WPF), esto asegura que el código después de await se ejecute en el hilo de la interfaz de usuario.
+- En aplicaciones de consola o servicios, no hay un contexto de sincronización, por lo que no es necesario capturarlo.
+- Usar `ConfigureAwait(false)` indica que no es necesario capturar el contexto de sincronización, lo que puede mejorar el rendimiento en ciertos escenarios.
+
+## 8. Buenas prácticas y errores comunes
 - Evitar `async void` salvo en handlers de eventos.
 - No usar `.Result` o `.Wait()` en código asíncrono (puede bloquear la aplicación).
+    - Al usar .Result o .Wait() en un contexto con SynchronizationContext (como UI o ASP.NET), se puede producir un deadlock. Esto ocurre porque el hilo que espera la tarea bloqueada está reteniendo el contexto de sincronización, impidiendo que la tarea asíncrona complete su ejecución y libere el contexto.
+    - También las excepciones puden ser envueltas en AggregateException, lo que complica su manejo.
+    - En ASP.NET, usar .Result o .Wait() puede bloquear el hilo del servidor, reduciendo la capacidad de manejar otras solicitudes y afectando el rendimiento de la aplicación.
 - Liberar recursos correctamente.
-
-**Ejemplo de error:**
-```csharp
-var datos = GetDataAsync().Result; // ¡Malo!
-```
-**Solución:**
-```csharp
-var datos = await GetDataAsync(); // ¡Bien!
-```
-
-podemos hacer fire and forget
-
-falso, si no hacemos await de una tarea asincrónica y falla se pierde la excepción.
 
 ---
 
@@ -761,8 +791,6 @@ falso, si no hacemos await de una tarea asincrónica y falla se pierde la excepc
 
 
 ---
-
-## Middlewares y await next
 
 ## 10. Clases útiles
 - Parallel.ForEach
@@ -801,9 +829,10 @@ IAsyncEnumerable<T>
 
 # Referencias
 
-https://sharplab.io
-https://www.youtube.com/watch?v=6frfLI3HqKI
-https://youtu.be/R-z2Hv-7nxk
+- https://sharplab.io
+- https://www.youtube.com/watch?v=6frfLI3HqKI
+- https://youtu.be/R-z2Hv-7nxk
+- https://www.youtube.com/watch?v=oHKyzgGjKHQ
 
 # Ejemplos de código
 
