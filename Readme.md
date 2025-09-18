@@ -296,10 +296,7 @@ Un Task puede devolver un valor o no. Si devuelve un valor, se usa `Task<T>`, do
 
 ## 6. async/await: ¿Qué son y cómo funcionan?
 
-Cómo hacemos entonces para poder invocar una llamada que es asincrónica desde una llamada síncrona, sin bloquear el thread actual?
-
-
-> Al marcar un método como async las cosas cambian internamente
+Al marcar un método como async las cosas cambian internamente
 
 Creamo un método que demora un tiempo y lo marcamos como async para no tener que esperarlo.
 
@@ -376,6 +373,8 @@ Ahora si el método AsyncCall espera a que Task.Delay termine (la tarea asíncro
 Entonces, sí estamos sincronizando el código.
 
 **Pero el Thread de AsyncCall se libera mientras espera a que Task.Delay termine.**
+
+**Await no es lo mismo que Wait**
 
 Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
 
