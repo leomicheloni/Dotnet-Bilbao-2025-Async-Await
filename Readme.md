@@ -851,59 +851,19 @@ Permite a otras tareas ejecutarse antes de continuar.
 
 ### Buenas prácticas
 
-Await every task
 - Usa await en cada tarea asíncrona para manejar excepciones y resultados.
-- no descartar con **_**
+- No descartar con **_**
+- Usa ConfigureAwait(false) en librerías para evitar capturar el contexto innecesariamente.
+- No usar .Result o .Wait() en código asíncrono.
 
-## Cómo funciona un lock
-
-task delay dentro de un foreach > por qué no usar thread sleep
-
-# SafeFireAndForget
-
-IAsyncEnumerable<T>
-[EnumerationCancellationToken]
-
-
-
----
-
-## 12. Recursos para seguir aprendiendo
-- [Documentación oficial .NET Async](https://learn.microsoft.com/dotnet/csharp/programming-guide/concepts/async/)
-- Libros, blogs, canales de YouTube.
 
 ---
 
 # Referencias
 
+- [Documentación oficial .NET Async](https://learn.microsoft.com/dotnet/csharp/programming-guide/concepts/async/)
 - https://sharplab.io
 - https://www.youtube.com/watch?v=6frfLI3HqKI
 - https://youtu.be/R-z2Hv-7nxk
 - https://www.youtube.com/watch?v=oHKyzgGjKHQ
 
-# Ejemplos de código
-
-- Creación de Thread manualmente.
-- Ejemplo que demuestra que no puedo leer el valor de retorno de un thread.
-- Ejemplo usando Join y bloqueo del UI Thread.
-
-- Uso de ThreadPool.
-
-- Uso de Task.Run.
-- Creación de método que tiene dentro un Task.Run
-- Ejemplo que demuestra dentro del nuevo método que no puedo leer el resultado porque retorna Task.
-- Ejemplo que demuestra que no puedo capturar excepciones en un método async void.
-- Ejemplo que demuestra que puedo capturar excepciones en un método async Task.
-- Ejemplo que demuestra que puedo leer el resultado de un método async Task<T>.
-- Ejemplo que demuestra que no puedo hacer await en un método que no es async.
-- Ejemplo que demuestra que no puedo retornar Task en un método async. (es automático)
-- Ejemplo que demuestra que await no crea un nuevo thread. (genera una máquina de estados)
-
-- Ejemplo de Parallel.ForEach
-- Ejemplo de Task.WhenAll
-- Ejemplo de Task.Delay
-- Ejemplo de Task.Yield
-- Ejemplo de ConfigureAwait
-- Ejemplo de SemaphoreSlim
-- Ejemplo de yield
-- Ejemplo de CancellationToken
