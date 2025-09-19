@@ -1,42 +1,22 @@
 # Charla: Desmitificando async/await y la programación asíncrona en .NET
 
 ## Menú (Tabla de contenidos)
+
 - [1. Introducción](#1-introducción)
-- [2. ¿Qué es la programación asíncrona?](#2-qué-es-la-programación-asíncrona)
-    - [Analogía y ejemplos](#analogía-y-ejemplos)
-        - [Analogía: delivery y limpieza](#analogía-delivery-y-limpieza)
-        - [Ejemplos prácticos (I/O vs CPU)](#ejemplos-prácticos-io-vs-cpu)
-- [3. ¿Qué es un thread?](#3-qué-es-un-thread)
-    - [Creando un thread](#creando-un-thread)
-        - [Código explicado paso a paso](#código-explicado-paso-a-paso)
-        - [Problema: Join bloquea el hilo principal](#problema-join-bloquea-el-hilo-principal)
-    - [Background thread](#background-thread)
-        - [Diferencias con foreground threads](#diferencias-con-foreground-threads)
-        - [Escenarios de uso recomendados](#escenarios-de-uso-recomendados)
-- [4. ¿Qué es el ThreadPool?](#4-qué-es-el-threadpool)
-    - [Usando Task.Run](#usando-taskrun)
-        - [Ventajas de Task.Run](#ventajas-de-taskrun)
-        - [Limitaciones y consideraciones](#limitaciones-y-consideraciones)
-- [5. Qué es un Task?](#5-qué-es-un-task)
-- [6. async/await: ¿Qué son y cómo funcionan?](#6-asyncawait-qué-son-y-cómo-funcionan)
-    - [async void vs async Task](#async-void-vs-async-task)
-        - [Cuándo usar cada una](#cuándo-usar-cada-una)
-    - [Qué ocurre internamente](#qué-ocurre-internamente)
-        - [La state machine del compilador](#la-state-machine-del-compilador)
-        - [SynchronizationContext y ExecutionContext](#synchronizationcontext-y-executioncontext)
-- [Cancellation token](#cancellation-token)
-- [7. Buenas prácticas y errores comunes](#7-buenas-prácticas-y-errores-comunes)
-    - [Evitar bloqueo: .Result / .Wait](#evitar-bloqueo-result-wait)
-        - [Alternativas asíncronas recomendadas](#alternativas-asíncronas-recomendadas)
-    - [Manejo de excepciones en Tasks](#manejo-de-excepciones-en-tasks)
-- [9. Cuándo y cómo usar async/await](#9-cuándo-y-cómo-usar-asyncawait)
-- [10. Clases útiles](#10-clases-útiles)
-    - [ManualResetEventSlim](#manualreseteventslim)
-        - [Uso típico y ventajas](#uso-típico-y-ventajas)
-    - [CancellationTokenSource y CancellationToken](#cancellationtokensource-y-cancellationtoken)
-- [12. Recursos y referencias](#12-recursos-para-seguir-aprendiendo)
-    - [Lecturas recomendadas](#lecturas-recomendadas)
-    - [Enlaces y documentación oficial](#enlaces-y-documentación-oficial)
+- [2. ¿Qué es la programación asíncrona?](#2-¿qué-es-la-programación-asíncrona)
+- [3. ¿Qué es un thread?](#3-¿qué-es-un-thread?)
+- [4. ¿Qué es el ThreadPool?](#4-¿qué-es-el-threadpool?)
+- [5. Qué es un Task?](#5-qué-es-un-task?)
+- [6. async/await: ¿Qué son y cómo funcionan?](#6-asyncawait-¿qué-son-y-cómo-funcionan?)
+- [7. El rol de la clase Task](#7-el-rol-de-la-clase-task?)
+- [8. Cancellation token](#8-cancellation-token?)
+- [9. ConfigureAwait](#9-configureawait)
+- [10. Buenas prácticas y errores comunes](#10-buenas-prácticas-y-errores-comunes)
+- [11. Cuándo y cómo usar async/await](#11-cuándo-y-cómo-usar-asyncawait)
+- [12. Clases útiles](#12-clases-útiles)
+- [13. Buenas prácticas](#13-buenas-prácticas)
+- [Referencias](#referencias)
+
 
 ---
 
@@ -789,7 +769,6 @@ Un cancellation token es un mecanismo que permite cancelar operaciones asíncron
 - APIs y servicios web.
 - Toda operación que requiere esperar un recurso externo
 
-
 ---
 
 ## 10. Clases útiles
@@ -849,7 +828,7 @@ Permite a otras tareas ejecutarse antes de continuar.
 ```
 ---
 
-### Buenas prácticas
+## 11. Buenas prácticas
 
 - Usa await en cada tarea asíncrona para manejar excepciones y resultados.
 - No descartar con **_**
