@@ -760,6 +760,9 @@ Un cancellation token es un mecanismo que permite cancelar operaciones asíncron
     - También las excepciones puden ser envueltas en AggregateException, lo que complica su manejo.
     - En ASP.NET, usar .Result o .Wait() puede bloquear el hilo del servidor, reduciendo la capacidad de manejar otras solicitudes y afectando el rendimiento de la aplicación.
 - Liberar recursos correctamente.
+- Usa await en cada tarea asíncrona para manejar excepciones y resultados.
+- No descartar con **_**
+- Usa ConfigureAwait(false) en librerías para evitar capturar el contexto innecesariamente.
 
 ---
 
@@ -826,16 +829,6 @@ Permite a otras tareas ejecutarse antes de continuar.
         await Task.WhenAll(tasks);
     }
 ```
----
-
-## 11. Buenas prácticas
-
-- Usa await en cada tarea asíncrona para manejar excepciones y resultados.
-- No descartar con **_**
-- Usa ConfigureAwait(false) en librerías para evitar capturar el contexto innecesariamente.
-- No usar .Result o .Wait() en código asíncrono.
-
-
 ---
 
 # Referencias
