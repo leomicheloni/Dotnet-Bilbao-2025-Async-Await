@@ -14,7 +14,6 @@
 - [10. Buenas prácticas y errores comunes](#10-buenas-prácticas-y-errores-comunes)
 - [11. Cuándo y cómo usar async/await](#11-cuándo-y-cómo-usar-asyncawait)
 - [12. Clases útiles](#12-clases-útiles)
-- [13. Buenas prácticas](#13-buenas-prácticas)
 - [Referencias](#referencias)
 
 
