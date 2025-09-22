@@ -28,7 +28,7 @@
 
 ## 2. ¿Qué es la programación asíncrona?
 
-Es poder ejecutar más de una tarea al mismo tiempo sin que una afecte a la otra.
+Es poder esperar a que una tarea termine mientras podemos seguir haciendo otras cosas.
 
 - **Analogía:** Pedir comida y limpiar la casa mientras esperas el delivery.
 
@@ -146,6 +146,7 @@ Esto funciona, pero estamos bloqueando el thread principal hasta que el thread2 
 - El Thread principal de la aplicación, en casos como Winforms, WPF, Xamarin, es el **UI Thread**.
 - El UI Thread es responsable de actualizar la interfaz de usuario y manejar la interacción del usuario.
 - Tenemos que evitar bloquear el UI Thread con operaciones largas o intensivas en recursos.
+- En una aplicación web si bloqueamos el thread principal, no podremos atender otras solicitudes con ese thread.
 - Crear muchos threads manualmente puede saturar el sistema y degradar el rendimiento.
 - En la gran mayoría de los casos, no es necesario crear hilos manualmente para la mayoría de las operaciones asíncronas. El runtime y el ThreadPool gestionan los hilos por nosotros.
 - Creando un thread manualmente, si hacemos un `thread.Join()` en el UI Thread, este se bloqueará hasta que el thread termine, lo que puede hacer que la aplicación deje de responder.
@@ -300,7 +301,7 @@ Creamo un método que demora un tiempo y lo marcamos como async para no tener qu
     {
         Console.ForegroundColor = ConsoleColor.Gray;
         Console.WriteLine("Starting long running task... ");
-
+        // marca un warning, si no hay await no espera por el delay
         Task.Delay(2000);
 
         //Thread.Sleep(2000);
@@ -370,7 +371,6 @@ Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
         try
         {
             AsyncCall();
-
         }
         catch (Exception)
         {
@@ -388,6 +388,7 @@ Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Async Method starts... ");
 
+        // no uso await, por lo que no puedo capturar la excepción
         Task.Run(() =>
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -406,7 +407,6 @@ Para ello uso await.
 ``` csharp
     static void Main()
     {
-
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         stopWatch.Start();
         Console.ForegroundColor = ConsoleColor.Cyan;
@@ -415,11 +415,9 @@ Para ello uso await.
         try
         {
             AsyncCall();
-
         }
         catch (Exception)
         {
-
             Console.WriteLine("Error hay que reintentar");
         }
 
@@ -428,11 +426,14 @@ Para ello uso await.
 
         Console.ReadLine();
     }
+
+    // devuelve void, no puedo hacer await
     static async void AsyncCall()
     {
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Async Method starts... ");
 
+        // si uso await, por lo que la excepción se propaga
         await Task.Run(() =>
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -465,7 +466,6 @@ Lo correcto es siempre devolver Task o Task<T>.
         }
         catch (Exception)
         {
-
             Console.WriteLine("Error hay que reintentar");
         }
 
@@ -486,57 +486,14 @@ Lo correcto es siempre devolver Task o Task<T>.
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Async Method finishing ");
-
+        // retorno int pero el método está marcado como async Task<int>
         return result;
     }
 ```
 
-Me indica que el tipo de retorno no es correcto, sin embargo estoy devolviendo un int
+> Me indica que el tipo de retorno no es correcto, sin embargo estoy devolviendo un int
 
 
-Ahora podemos capturar la excepción en el Main.
-
-``` csharp
-    static async Task Main()
-    {
-        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
-        stopWatch.Start();
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("Calling AsyncCall...");
-
-        try
-        {
-            var result = await AsyncCall();
-            Console.WriteLine("Result: {0}", result);
-        }
-        catch (Exception)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Error hay que reintentar");
-        }
-
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("Called, took {0}", stopWatch.Elapsed);
-
-        Console.ReadLine();
-    }
-    static async Task<int> AsyncCall()
-    {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method starts... ");
-
-        var result = await Task.Run(() =>
-        {
-            throw new Exception("Simulated exception");
-            return 44;
-        });
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Async Method finishing ");
-
-        return 44;
-    }
-```
 
 Sincronización de Tasks
 
@@ -786,6 +743,26 @@ Un cancellation token es un mecanismo que permite cancelar operaciones asíncron
 ```
 
 - Task.WhenAll
+
+Permite esperar a que múltiples tareas se completen.
+
+``` csharp
+    static async Task Main()
+    {
+        var tasks = new List<Task>
+        {
+            Task.Run(() => { Thread.Sleep(2000); Console.WriteLine("Task 1 completed"); }),
+            Task.Run(() => { Thread.Sleep(1000); Console.WriteLine("Task 2 completed"); }),
+            Task.Run(() => { Thread.Sleep(3000); Console.WriteLine("Task 3 completed"); })
+        };
+
+        await Task.WhenAll(tasks);
+        Console.WriteLine("All tasks completed");
+    }
+```
+
+
+
 - Task.Yield
 Permite a otras tareas ejecutarse antes de continuar.
 
