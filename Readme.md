@@ -547,6 +547,15 @@ Si el método es async, el compilador espera que haya al menos un await dentro d
 
 Al haber un await el compilador retorna Task o Task<T> automáticamente.
 
+### Ventajas de async/await
+
+- Legibilidad: el código se lee como si fuera síncrono, lo que facilita entender el flujo de las operaciones.
+- Mantenibilidad: agregar o quitar pasos en la secuencia requiere cambios mínimos en el código.
+- Manejo de errores: el manejo de excepciones con bloques try/catch funciona de forma natural.
+- Depuración: la pila de llamadas y la experiencia con el depurador son mucho mejores con async/await.
+- Rendimiento: las optimizaciones del compilador para async/await son más sofisticadas que las cadenas manuales con ContinueWith.
+
+
 ### La clase Task
 
 ``` csharp
@@ -810,6 +819,7 @@ Permite a otras tareas ejecutarse antes de continuar.
 # Referencias
 
 - [Documentación oficial .NET Async](https://learn.microsoft.com/dotnet/csharp/programming-guide/concepts/async/)
+- https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/
 - https://sharplab.io
 - https://www.youtube.com/watch?v=6frfLI3HqKI
 - https://youtu.be/R-z2Hv-7nxk
