@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../Breakfast/Breakfast.csproj" Id="8fb79c19-c83f-4ab5-b246-75c4ec986de7" />
   <Project Path="Demo.csproj" />
 </Solution>

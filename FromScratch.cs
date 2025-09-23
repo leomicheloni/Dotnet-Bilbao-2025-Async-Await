@@ -118,7 +118,7 @@ class MyTask
         }
     }
 
-    public MyTask ContinueWith(Action action)
+    public MyTask ContinueWith(Acthion action)
     {
         MyTask t = new();
 
