@@ -166,15 +166,18 @@ No es necesario crear hilos manualmente para la mayoría de las operaciones así
 Un **background thread** es un hilo que se ejecuta en segundo plano, permitiendo que la aplicación continúe respondiendo a la interacción del usuario. Estos hilos son útiles para tareas que no requieren la atención inmediata del usuario, como la carga de datos o el procesamiento de información.
 
 ``` csharp
-var thread = new System.Threading.Thread(() =>
-{
-    Console.WriteLine("Hello from another thread!");
-    System.Threading.Thread.Sleep(9000);
-});
-//thread.IsBackground = true;
-thread.Start();
+    public static void Main(string[] args)
+    {
+        var thread = new System.Threading.Thread(() =>
+        {
+            Console.WriteLine("Hello from another thread!");
+            System.Threading.Thread.Sleep(9000);
+        });
+        //thread.IsBackground = true;
+        thread.Start();
 
-Console.WriteLine("Hello, World!");
+        Console.WriteLine("Hello, World!");
+    }
 ```
 
 > Ahora que aprendimos a hacer un Thread tenemos que dejar de hacerlo.
@@ -280,6 +283,7 @@ Al marcar un método como async las cosas cambian internamente
 
 Creamo un método que demora un tiempo y lo marcamos como async para no tener que esperarlo.
 
+#### Usando un método async void sin await
 
 ``` csharp
     static void Main()
@@ -312,11 +316,14 @@ Creamo un método que demora un tiempo y lo marcamos como async para no tener qu
 ```
 
 Me marca un warning que no estoy haciendo await de Task.Delay.
+
 Pero no necesito leer ningún resultado, solo quiero que espere 2 segundos, estoy haciendo **fire-and-forget**. Así que todo bien...
 
 Vemos que el método se ejecuta pero no espera dos segundos.
 
 Porque AsyncCall no espera a que Task.Delay termine. No hace await.
+
+#### Agregando await a nuestro método
 
 Agregamos await
 
@@ -358,6 +365,7 @@ Entonces, sí estamos sincronizando el código.
 
 Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
 
+#### Error en métodos async void
 
 ``` csharp
     static void Main()
@@ -400,7 +408,9 @@ Sin embargo tampoco puedo controlar los errores que puedan ocurrir en AsyncCall.
     }
 ```
 
-En este caso no puedo capturar el error
+En este caso no puedo capturar el error, lo captura el manejador global de excepciones. Esto puede hacer que la aplicación se cierre inesperadamente.
+
+> Modo correcto de capturar errores en métodos async
 
 Para ello uso await.
 
@@ -449,6 +459,8 @@ En este caso el error se propaga, pero no puedo capturarlo en el Main porque Asy
 
 > **Es una mala práctica usar async void.**
 
+#### Utilizando correctamente async/await
+
 Lo correcto es siempre devolver Task o Task<T>.
 
 ``` csharp
@@ -481,6 +493,7 @@ Lo correcto es siempre devolver Task o Task<T>.
 
         var result = await Task.Run(() =>
         {
+            // throw new Exception("Error in Task");
             return 44;            
         });
 
@@ -495,7 +508,9 @@ Lo correcto es siempre devolver Task o Task<T>.
 
 
 
-Sincronización de Tasks
+#### Sincronización de Tasks
+
+Cómo me ayuda async/await a sincronizar tareas, es decir, sin bloquear el hilo actual, poder esperar a que una tarea termine para seguir con la siguiente.
 
 ``` csharp
     static async Task Main()
@@ -607,7 +622,7 @@ class Library
 > Ejemplo del código descompilado
 
 ```
-Cosas interesantes sobre async/await:
+#### Cosas interesantes sobre async/await:
 
 - Solo podemos hacer await en métodos async.
 - Solo podemos hacer await en métodos que retornan Task.

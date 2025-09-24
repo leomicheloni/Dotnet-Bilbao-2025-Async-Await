@@ -6,13 +6,10 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Text.Json;
 
-namespace Demo;
-
-
 public class Library
 {
-    public string Name { get; set; }
-    public string Version { get; set; }
+    public string? Name { get; set; }
+    public string? Version { get; set; }
 }
 
 public class LibraryService
@@ -33,7 +30,7 @@ public class LibraryService
 
         var libraries = await JsonSerializer.DeserializeAsync<List<Library>>(content);
 
-        return libraries;
+        return libraries!;
     }
 }
 
