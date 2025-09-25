@@ -1,24 +1,15 @@
-flowchart TD
-    Start([Inicio GetDataAsync])
-    Await1[Esperar _client.GetAsync]
-    Check1{¿Excepción en GetAsync?}
-    Await2[Esperar response.Content.ReadAsStreamAsync]
-    Check2{¿Excepción en ReadAsStreamAsync?}
-    Await3[Esperar JsonSerializer.DeserializeAsync]
-    Check3{¿Excepción en DeserializeAsync?}
-    Return[Devolver resultado y completar Task]
-    Exception[Completar Task con excepción]
-    End([Fin])
-
-    Start --> Await1
-    Await1 --> Check1
-    Check1 -- Sí --> Exception
-    Check1 -- No --> Await2
-    Await2 --> Check2
-    Check2 -- Sí --> Exception
-    Check2 -- No --> Await3
-    Await3 --> Check3
-    Check3 -- Sí --> Exception
-    Check3 -- No --> Return
-    Return --> End
-    Exception --> End
+stateDiagram-v2
+    [*] --> Await_GetAsync : Start GetDataAsync()
+    Await_GetAsync : Await _client.GetAsync()
+    Await_GetAsync --> Await_ReadAsStreamAsync : GetAsync completed
+    Await_ReadAsStreamAsync : Await response.Content.ReadAsStreamAsync()
+    Await_ReadAsStreamAsync --> Await_DeserializeAsync : ReadAsStreamAsync completed
+    Await_DeserializeAsync : Await JsonSerializer.DeserializeAsync()
+    Await_DeserializeAsync --> Return_Result : DeserializeAsync completed
+    Return_Result : Set result and complete Task
+    Await_GetAsync --> Exception : Exception thrown
+    Await_ReadAsStreamAsync --> Exception : Exception thrown
+    Await_DeserializeAsync --> Exception : Exception thrown
+    Exception : Set exception on Task
+    Return_Result --> [*] : Done
+    Exception --> [*] : Done
